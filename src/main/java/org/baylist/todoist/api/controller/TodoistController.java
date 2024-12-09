@@ -5,20 +5,25 @@ import org.baylist.dto.todoist.Label;
 import org.baylist.dto.todoist.Project;
 import org.baylist.dto.todoist.Section;
 import org.baylist.dto.todoist.Task;
+import org.baylist.exception.TodoistApiException;
 import org.baylist.todoist.api.Todoist;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
+import static org.baylist.util.convert.InputStreamConverter.inputStreamToString;
+import static org.baylist.util.convert.ToJson.fromJsonList;
 import static org.baylist.util.convert.ToJson.toJson;
 
 @Controller
 @AllArgsConstructor
 public class TodoistController implements Todoist {
-
+    //todo механизм ретраев неудачных вопросов
     private static final String PROJECT_METHOD = "projects";
     private static final String TASK_METHOD = "tasks";
     private static final String SECTION_METHOD = "sections";
@@ -41,13 +46,17 @@ public class TodoistController implements Todoist {
                         .pathSegment(PROJECT_METHOD)
                         .build()
                         .toUriString())
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
+                .exchange((request, response) -> {
+                    if (response.getStatusCode().equals(HttpStatus.OK)) {
+                        return fromJsonList(inputStreamToString(response.getBody()), Project.class);
+                    } else {
+                        throw new TodoistApiException(response);
+                    }
                 });
     }
 
     @Override
-    public Project getProject(long index) { //done
+    public Project getProject(Long index) { //done
         return restClient
                 .get()
                 .uri(UriComponentsBuilder
@@ -75,7 +84,7 @@ public class TodoistController implements Todoist {
     }
 
     @Override
-    public List<Task> getTasksByProject(long index) {
+    public List<Task> getTasksByProject(Long index) {
         return restClient
                 .get()
                 .uri(UriComponentsBuilder
@@ -85,12 +94,15 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
 
     @Override
-    public List<Task> getTasksBySection(long index) {
+    public List<Task> getTasksBySection(Long index) {
         return restClient
                 .get()
                 .uri(UriComponentsBuilder
@@ -100,6 +112,9 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
@@ -115,6 +130,9 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
@@ -129,12 +147,15 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
 
     @Override
-    public List<Section> getSectionsByProject(long index) {
+    public List<Section> getSectionsByProject(Long index) {
         return restClient
                 .get()
                 .uri(UriComponentsBuilder
@@ -144,6 +165,9 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
@@ -158,6 +182,9 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
@@ -177,6 +204,9 @@ public class TodoistController implements Todoist {
                         .toUriString())
                 .body(toJson(project))
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toEntity(Project.class)
                 .getBody();
     }
@@ -193,6 +223,9 @@ public class TodoistController implements Todoist {
                         .toUriString())
                 .body(toJson(section))
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toEntity(Section.class)
                 .getBody();
     }
@@ -209,6 +242,9 @@ public class TodoistController implements Todoist {
                         .toUriString())
                 .body(toJson(task))
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toEntity(Task.class)
                 .getBody();
     }
@@ -218,7 +254,7 @@ public class TodoistController implements Todoist {
     //region DELETE
 
     @Override
-    public void deleteProject(long projectId) {
+    public void deleteProject(Long projectId) {
         restClient
                 .delete()
                 .uri(UriComponentsBuilder
@@ -228,11 +264,14 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
     }
 
     @Override
-    public void deleteSection(long sectionId) {
+    public void deleteSection(Long sectionId) {
         restClient
                 .delete()
                 .uri(UriComponentsBuilder
@@ -242,12 +281,15 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
     }
 
 
     @Override
-    public void deleteTask(long taskId) {
+    public void deleteTask(Long taskId) {
         restClient
                 .delete()
                 .uri(UriComponentsBuilder
@@ -257,6 +299,9 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
     }
 
@@ -276,6 +321,9 @@ public class TodoistController implements Todoist {
                         .toUriString())
                 .body(toJson(project))
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
     }
 
@@ -291,6 +339,9 @@ public class TodoistController implements Todoist {
                         .toUriString())
                 .body(toJson(section))
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
     }
 
@@ -306,6 +357,9 @@ public class TodoistController implements Todoist {
                         .toUriString())
                 .body(toJson(task))
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
 
     }
@@ -313,7 +367,7 @@ public class TodoistController implements Todoist {
     //endregion UPDATE
 
     @Override
-    public void closeTask(long taskId) {
+    public void closeTask(Long taskId) {
         restClient
                 .post()
                 .uri(UriComponentsBuilder
@@ -324,11 +378,14 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
     }
 
     @Override
-    public void reopenTask(long taskId) {
+    public void reopenTask(Long taskId) {
         restClient
                 .post()
                 .uri(UriComponentsBuilder
@@ -339,6 +396,9 @@ public class TodoistController implements Todoist {
                         .build()
                         .toUriString())
                 .retrieve()
+                .onStatus(HttpStatusCode::isError, ((request, response) -> {
+                    throw new TodoistApiException(response);
+                }))
                 .toBodilessEntity();
 
     }
